@@ -1,85 +1,103 @@
 import pygame
-import sys
-from random import choice
+import random 
 
-W, H = 1200, 900
-TILES = 20
-cols, rows = W // TILES, H // TILES
-screen = pygame.display.set_mode((W, H))
-clock = pygame.time.Clock()
+SCREEN_HEIGHT = 1920
+SCREEN_WIDTH = 1080
+cellLength = 2
+COLS,ROWS = SCREEN_WIDTH//cellLength, SCREEN_HEIGHT//cellLength
+window = pygame.display.set_mode((SCREEN_WIDTH,SCREEN_HEIGHT))
 running = True
+cells = []
 
 class Cell:
-    def __init__(self, x, y):
-        self.x = x
-        self.y = y
-        self.visited = False
+
+    def __init__(self,cx,cy):
+        self.x = cx
+        self.y = cy
+        self.isVisited = False 
         self.walls = {
-            'top': True,
-            'bottom': True,
-            'left': True,
-            'right': True
+            "top":True,
+            "bottom":True,
+            "left":True,
+            "right":True
         }
+        self.isActive = False
 
-    def draw_current(self):
-        pygame.draw.rect(screen,'red',(self.x*TILES,self.y*TILES,TILES,TILES))
-    def draw(self):
-        x = self.x * TILES
-        y = self.y * TILES
-        if self.visited:
-            pygame.draw.rect(screen, 'white', (x, y, TILES, TILES))
-        if self.walls['top']:
-            pygame.draw.line(screen, 'black', (x, y), (x + TILES, y))
-        if self.walls['bottom']:
-            pygame.draw.line(screen, 'black', (x + TILES, y + TILES), (x, y + TILES))
-        if self.walls['right']:
-            pygame.draw.line(screen, 'black', (x + TILES, y), (x + TILES, y + TILES))
-        if self.walls['left']:
-            pygame.draw.line(screen, 'black', (x, y), (x, y + TILES))
 
-    def check_cells(self, x, y):
-        if x < 0 or x >= cols or y < 0 or y >= rows:
+
+    def draw(self,window):
+        transformedX = self.x*cellLength
+        transformedY = self.y*cellLength
+
+        if(self.isVisited):
+            pygame.draw.rect(window,"white",(transformedX,transformedY,cellLength,cellLength))
+        if(self.isActive):
+            pygame.draw.rect(window,"red",(transformedX,transformedY,cellLength,cellLength))
+            self.isActive = False
+
+        if(self.walls["top"]):
+            pygame.draw.line(window,"black",(transformedX,transformedY),(transformedX+cellLength,transformedY))
+        if(self.walls["left"]):
+            pygame.draw.line(window,"black",(transformedX,transformedY),(transformedX,transformedY+cellLength))
+        if(self.walls["bottom"]):
+            pygame.draw.line(window,"black",(transformedX,transformedY+cellLength),(transformedX+cellLength,transformedY+cellLength))
+        if(self.walls["right"]):
+            pygame.draw.line(window,"black",(transformedX+cellLength,transformedY),(transformedX+cellLength,transformedY+cellLength))
+
+    def getCellAt(self,x,y):
+        if x<0 or x>=COLS or y<0 or y >=ROWS:
             return False
-        return cells[x + y * cols]
+        return cells[x+y*COLS]
+    def getUnvisitedNeighbors(self):
 
-    def check_neighbors(self):
         neighbors = []
-        directions = [('top', 0, -1), ('right', 1, 0), ('bottom', 0, 1), ('left', -1, 0)]
-        for direction, dx, dy in directions:
-            neighbor = self.check_cells(self.x + dx, self.y + dy)
-            if neighbor and not neighbor.visited:
-                neighbors.append((direction, neighbor))
+
+        directions = [('top',0,-1),('right',1,0),('bottom',0,1),('left',-1,0)]
+        for direction,dx,dy in directions:
+            neighbor = self.getCellAt(self.x+dx,self.y+dy)
+            if neighbor and not neighbor.isVisited:
+                neighbors.append((direction,neighbor))
+        
         return neighbors
+    
 
-def remove_wall(current_cell, next_cell, direction):
-    opposite = {'top': 'bottom', 'bottom': 'top', 'left': 'right', 'right': 'left'}
-    current_cell.walls[direction] = False
-    next_cell.walls[opposite[direction]] = False
 
-cells = [Cell(col, row) for row in range(rows) for col in range(cols)]
-current_cell = cells[0]
-current_cell.visited = True
-visited_cells = [current_cell]
 
+def removeWall(currentCell,nextCell,direction):
+
+    oppposite = {"top":"bottom","left":"right","bottom":"top","right":"left"}
+    currentCell.walls[direction] = False
+    nextCell.walls[oppposite[direction]] = False
+
+
+
+cells = [Cell(x,y) for y in range(ROWS) for x in range(COLS)]
+
+currentCell = cells[0]
+currentCell.isVisited = True
+currentCell.isActive = True
+visitedCells = [currentCell]
 while running:
-    screen.fill("grey")
+
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
-            pygame.quit()
-            sys.exit()
+            running = False
 
-    [cell.draw() for cell in cells]
-    current_cell.draw_current()
-    neighbors = current_cell.check_neighbors()
+    window.fill("Grey")
+
+    neighbors  = currentCell.getUnvisitedNeighbors()
     if neighbors:
-        direction, next_cell = choice(neighbors)
-        next_cell.visited = True
-        remove_wall(current_cell, next_cell, direction)
-        visited_cells.append(next_cell)
-        current_cell = next_cell
-    elif visited_cells:
-        current_cell = visited_cells.pop()
-    clock.tick(120)
+        direction,nextCell = random.choice(neighbors)
+        nextCell.isVisited = True
+        removeWall(currentCell,nextCell,direction)
+        visitedCells.append(nextCell)
+        currentCell = nextCell
+        currentCell.isActive = True
+    elif visitedCells:
+        currentCell = visitedCells.pop()
+        currentCell.isActive = True
+
+        [cell.draw(window) for cell in cells]
+
+
     pygame.display.update()
-
-

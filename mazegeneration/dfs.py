@@ -97,7 +97,7 @@ while running:
         currentCell = visitedCells.pop()
         currentCell.isActive = True
 
-        [cell.draw(window) for cell in cells]
+    [cell.draw(window) for cell in cells]
 
 
     pygame.display.update()
